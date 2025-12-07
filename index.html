@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controlled Chaos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>Controlled Chaos <span class="logo-emoji">🌀</span></h1>
+      <div class="header-actions">
+        <button id="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </div>
+    </header>
+
+    <!-- Main Content: Two Panels -->
+    <main class="app-main">
+      <!-- Left Panel: Tasks -->
+      <section class="panel panel-tasks">
+        <h2 class="panel-title">📋 Tasks</h2>
+
+        <div id="task-groups" class="task-groups">
+          <!-- Task groups rendered by JS -->
+        </div>
+
+        <!-- Add Task -->
+        <div class="add-task-container">
+          <button id="add-task-toggle" class="add-task-btn">+ Add task...</button>
+          <form id="add-task-form" class="add-task-form hidden">
+            <input
+              type="text"
+              id="task-title"
+              placeholder="What needs to be done?"
+              required
+              autocomplete="off"
+            >
+            <div class="task-options">
+              <input type="date" id="task-date">
+              <input type="time" id="task-time">
+              <select id="task-category">
+                <option value="life">Life</option>
+                <option value="school">School</option>
+                <option value="work">Work</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Add Task</button>
+              <button type="button" id="cancel-task" class="btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Panel: AI Chat -->
+      <section class="panel panel-chat">
+        <h2 class="panel-title">💬 Assistant</h2>
+
+        <div id="chat-messages" class="chat-messages">
+          <!-- Messages rendered by JS -->
+        </div>
+
+        <!-- What Should I Do Now Button -->
+        <button id="what-now-btn" class="what-now-btn">
+          What should I do now? 🎲
+        </button>
+
+        <!-- Chat Input -->
+        <div class="chat-input-container">
+          <textarea
+            id="chat-input"
+            placeholder="Type or talk..."
+            rows="1"
+          ></textarea>
+          <button id="voice-btn" class="icon-btn" aria-label="Voice input">🎤</button>
+          <button id="send-btn" class="btn-primary">Send</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Task Confirmation Modal (for AI-proposed tasks) -->
+    <div id="task-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Add these tasks?</h3>
+        <div id="proposed-tasks"></div>
+        <div class="modal-actions">
+          <button id="confirm-tasks" class="btn-primary">Add Selected</button>
+          <button id="cancel-modal" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="dist/app.js"></script>
+</body>
+</html>

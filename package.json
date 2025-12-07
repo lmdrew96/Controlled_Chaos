@@ -1,0 +1,24 @@
+{
+  "name": "controlled_chaos",
+  "version": "1.0.0",
+  "description": "An ADHD Executive Function tool",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lmdrew96/Controlled_Chaos.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lmdrew96/Controlled_Chaos/issues"
+  },
+  "homepage": "https://github.com/lmdrew96/Controlled_Chaos#readme",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
