@@ -165,24 +165,47 @@ function processClaudeResponse(data: any): { message: string; toolCalls: any[] }
   return result;
 }
 
+// Helper function to make HTTP request (Node.js compatible)
+async function callClaudeAPI(apiKey: string, body: object): Promise<any> {
+  const response = await fetch(CLAUDE_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Claude API error (${response.status}): ${errorText}`);
+  }
+
+  return response.json();
+}
+
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse
 ) {
-  // Only allow POST
-  if (request.method !== 'POST') {
-    return response.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // Get API key from environment
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('ANTHROPIC_API_KEY not found in environment');
-    return response.status(500).json({ error: 'API key not configured' });
-  }
-
+  // Wrap everything in try-catch to catch any errors
   try {
-    const { messages, tasks } = request.body;
+    // Only allow POST
+    if (request.method !== 'POST') {
+      return response.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Get API key from environment
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return response.status(500).json({
+        error: 'API key not configured',
+        hint: 'Set ANTHROPIC_API_KEY in Vercel environment variables'
+      });
+    }
+
+    const { messages, tasks } = request.body || {};
 
     if (!messages || !Array.isArray(messages)) {
       return response.status(400).json({ error: 'Messages array required' });
@@ -207,42 +230,23 @@ export default async function handler(
     }
 
     // Call Claude API
-    const claudeResponse = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 1024,
-        system: getSystemPrompt(),
-        tools: TOOLS,
-        messages: claudeMessages
-      })
+    const data = await callClaudeAPI(apiKey, {
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system: getSystemPrompt(),
+      tools: TOOLS,
+      messages: claudeMessages
     });
 
-    if (!claudeResponse.ok) {
-      const errorText = await claudeResponse.text();
-      console.error('Claude API error:', claudeResponse.status, errorText);
-      return response.status(500).json({
-        error: 'AI request failed',
-        details: errorText,
-        status: claudeResponse.status
-      });
-    }
-
-    const data = await claudeResponse.json();
     const result = processClaudeResponse(data);
-
     return response.status(200).json(result);
 
   } catch (error) {
     console.error('Handler error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return response.status(500).json({
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : String(error)
+      details: errorMessage
     });
   }
 }
