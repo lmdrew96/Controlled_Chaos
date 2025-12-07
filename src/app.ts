@@ -3,12 +3,19 @@
  * An AI assistant for ADHD executive function
  */
 
-import { Task, AppState } from './types.js';
+import { Task, AppState, ChatMessage, ProposedTask } from './types.js';
 import * as Storage from './storage.js';
 import * as UI from './ui.js';
+import * as API from './api.js';
 
 // Application state
 let state: AppState = Storage.load();
+
+// Pending proposed tasks from AI
+let pendingProposedTasks: ProposedTask[] = [];
+
+// Speech recognition instance (using any for browser compatibility)
+let recognition: any = null;
 
 /**
  * Save state and re-render
@@ -72,6 +79,178 @@ function toggleTheme(): void {
 }
 
 /**
+ * Add a chat message to state
+ */
+function addChatMessage(role: 'user' | 'assistant', content: string): ChatMessage {
+  const message: ChatMessage = {
+    id: Storage.generateId(),
+    role,
+    content,
+    timestamp: new Date().toISOString()
+  };
+
+  state.chatHistory.push(message);
+  Storage.save(state);
+  UI.renderChatMessages(state.chatHistory);
+  return message;
+}
+
+/**
+ * Send a message to the AI
+ */
+async function sendMessage(messageText?: string): Promise<void> {
+  const text = messageText || UI.elements.chatInput.value.trim();
+  if (!text) return;
+
+  // Clear input
+  UI.elements.chatInput.value = '';
+
+  // Add user message
+  addChatMessage('user', text);
+
+  // Show loading state
+  UI.setChatLoading(true);
+  UI.showTypingIndicator();
+
+  try {
+    // Get last 10 messages for context
+    const recentMessages = state.chatHistory.slice(-10);
+
+    // Call AI API
+    const response = await API.sendChatMessage(recentMessages, state.tasks);
+
+    // Hide loading
+    UI.hideTypingIndicator();
+    UI.setChatLoading(false);
+
+    // Process tool calls
+    if (response.toolCalls && response.toolCalls.length > 0) {
+      // Check for proposed tasks
+      const proposedTasks = API.extractProposedTasks(response.toolCalls);
+      if (proposedTasks.length > 0) {
+        pendingProposedTasks = proposedTasks;
+        UI.showTaskConfirmationModal(proposedTasks);
+      }
+
+      // Check for task recommendation
+      const recommendation = API.extractRecommendation(response.toolCalls);
+      if (recommendation) {
+        UI.highlightRecommendedTask(recommendation.taskId);
+      }
+    }
+
+    // Add assistant message if present
+    if (response.message) {
+      addChatMessage('assistant', response.message);
+    }
+
+  } catch (error) {
+    console.error('Chat error:', error);
+    UI.hideTypingIndicator();
+    UI.setChatLoading(false);
+
+    addChatMessage('assistant', "Sorry, I had trouble processing that. Please try again.");
+  }
+}
+
+/**
+ * Handle "What should I do now?" button
+ */
+function handleWhatNow(): void {
+  sendMessage("What should I do right now?");
+}
+
+/**
+ * Confirm and add proposed tasks
+ */
+function confirmProposedTasks(): void {
+  const selected = UI.getSelectedProposedTasks(pendingProposedTasks);
+
+  selected.forEach(task => {
+    addTask({
+      title: task.title,
+      dueDate: task.dueDate,
+      dueTime: task.dueTime,
+      category: task.category
+    });
+  });
+
+  UI.hideTaskConfirmationModal();
+  pendingProposedTasks = [];
+
+  // Add confirmation message to chat
+  if (selected.length > 0) {
+    addChatMessage('assistant', `Added ${selected.length} task${selected.length > 1 ? 's' : ''}. What would you like to tackle first?`);
+  }
+}
+
+/**
+ * Cancel proposed tasks modal
+ */
+function cancelProposedTasks(): void {
+  UI.hideTaskConfirmationModal();
+  pendingProposedTasks = [];
+}
+
+/**
+ * Initialize voice recognition
+ */
+function initVoiceRecognition(): void {
+  // Check for browser support
+  const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+  if (!SpeechRecognitionAPI) {
+    // Hide voice button if not supported
+    UI.elements.voiceBtn.style.display = 'none';
+    return;
+  }
+
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (event: any) => {
+    const transcript = Array.from(event.results)
+      .map((result: any) => result[0].transcript)
+      .join('');
+    UI.elements.chatInput.value = transcript;
+  };
+
+  recognition.onend = () => {
+    UI.setVoiceRecording(false);
+    // Auto-send if we have content
+    const text = UI.elements.chatInput.value.trim();
+    if (text) {
+      sendMessage(text);
+    }
+  };
+
+  recognition.onerror = (event: any) => {
+    console.error('Speech recognition error:', event.error);
+    UI.setVoiceRecording(false);
+  };
+}
+
+/**
+ * Toggle voice recording
+ */
+function toggleVoiceInput(): void {
+  if (!recognition) {
+    initVoiceRecognition();
+    if (!recognition) return;
+  }
+
+  if (UI.elements.voiceBtn.classList.contains('recording')) {
+    recognition.stop();
+    UI.setVoiceRecording(false);
+  } else {
+    UI.setVoiceRecording(true);
+    recognition.start();
+  }
+}
+
+/**
  * Handle add task form submission
  */
 function handleAddTaskSubmit(e: Event): void {
@@ -126,27 +305,26 @@ function initEventListeners(): void {
   // Theme toggle
   UI.elements.themeToggle.addEventListener('click', toggleTheme);
 
-  // Chat send (placeholder for Phase 2)
-  UI.elements.sendBtn.addEventListener('click', () => {
-    const message = UI.elements.chatInput.value.trim();
-    if (message) {
-      console.log('Send message:', message);
-      UI.elements.chatInput.value = '';
-    }
-  });
+  // Chat send
+  UI.elements.sendBtn.addEventListener('click', () => sendMessage());
 
   // Enter to send in chat
   UI.elements.chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      UI.elements.sendBtn.click();
+      sendMessage();
     }
   });
 
-  // What now button (placeholder for Phase 2)
-  UI.elements.whatNowBtn.addEventListener('click', () => {
-    console.log('What should I do now?');
-  });
+  // What now button
+  UI.elements.whatNowBtn.addEventListener('click', handleWhatNow);
+
+  // Voice input
+  UI.elements.voiceBtn.addEventListener('click', toggleVoiceInput);
+
+  // Modal buttons
+  UI.elements.confirmTasks.addEventListener('click', confirmProposedTasks);
+  UI.elements.cancelModal.addEventListener('click', cancelProposedTasks);
 }
 
 /**
@@ -162,6 +340,9 @@ function init(): void {
 
   // Set up event listeners
   initEventListeners();
+
+  // Initialize voice recognition
+  initVoiceRecognition();
 
   console.log('Controlled Chaos initialized');
 }

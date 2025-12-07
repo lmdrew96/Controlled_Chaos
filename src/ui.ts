@@ -2,7 +2,7 @@
  * DOM manipulation and rendering for Controlled Chaos
  */
 
-import { Task, ChatMessage, TaskGroup } from './types.js';
+import { Task, ChatMessage, TaskGroup, ProposedTask } from './types.js';
 
 // Cached DOM elements
 export const elements = {
@@ -275,4 +275,72 @@ export function highlightRecommendedTask(taskId: string): void {
     taskElement.classList.add('recommended');
     taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+}
+
+/**
+ * Show task confirmation modal with proposed tasks
+ */
+export function showTaskConfirmationModal(proposedTasks: ProposedTask[]): void {
+  elements.proposedTasks.innerHTML = proposedTasks.map((task, index) => `
+    <div class="proposed-task-item">
+      <input type="checkbox" id="proposed-${index}" data-index="${index}" checked>
+      <label for="proposed-${index}">
+        <strong>${escapeHtml(task.title)}</strong>
+        ${task.dueDate ? `<br><small>Due: ${task.dueDate}${task.dueTime ? ' at ' + task.dueTime : ''}</small>` : ''}
+        <span class="category-badge category-${task.category}">${task.category}</span>
+      </label>
+    </div>
+  `).join('');
+
+  elements.taskModal.classList.remove('hidden');
+}
+
+/**
+ * Hide task confirmation modal
+ */
+export function hideTaskConfirmationModal(): void {
+  elements.taskModal.classList.add('hidden');
+  elements.proposedTasks.innerHTML = '';
+}
+
+/**
+ * Get selected tasks from confirmation modal
+ */
+export function getSelectedProposedTasks(proposedTasks: ProposedTask[]): ProposedTask[] {
+  const selected: ProposedTask[] = [];
+  const checkboxes = elements.proposedTasks.querySelectorAll('input[type="checkbox"]');
+
+  checkboxes.forEach((checkbox) => {
+    const input = checkbox as HTMLInputElement;
+    if (input.checked) {
+      const index = parseInt(input.getAttribute('data-index') || '0');
+      if (proposedTasks[index]) {
+        selected.push(proposedTasks[index]);
+      }
+    }
+  });
+
+  return selected;
+}
+
+/**
+ * Set voice button recording state
+ */
+export function setVoiceRecording(isRecording: boolean): void {
+  if (isRecording) {
+    elements.voiceBtn.classList.add('recording');
+    elements.voiceBtn.textContent = '🔴';
+  } else {
+    elements.voiceBtn.classList.remove('recording');
+    elements.voiceBtn.textContent = '🎤';
+  }
+}
+
+/**
+ * Disable/enable chat input during API calls
+ */
+export function setChatLoading(isLoading: boolean): void {
+  elements.chatInput.disabled = isLoading;
+  elements.sendBtn.disabled = isLoading;
+  elements.whatNowBtn.disabled = isLoading;
 }

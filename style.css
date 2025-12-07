@@ -518,6 +518,66 @@ body {
   margin-top: var(--space-lg);
 }
 
+/* === Proposed Task Items === */
+.proposed-task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.proposed-task-item:last-child {
+  border-bottom: none;
+}
+
+.proposed-task-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.proposed-task-item label {
+  flex: 1;
+  cursor: pointer;
+}
+
+.proposed-task-item label strong {
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.proposed-task-item label small {
+  color: var(--text-secondary);
+}
+
+/* === Voice Recording State === */
+.icon-btn.recording {
+  background: var(--danger);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* === Disabled States === */
+button:disabled,
+textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary:disabled:hover {
+  background: var(--accent);
+}
+
 /* === Task Recommendation Highlight === */
 .task-item.recommended {
   background: linear-gradient(90deg, rgba(67, 97, 238, 0.15), transparent);
