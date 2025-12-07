@@ -1,6 +1,7 @@
 {
   "name": "controlled_chaos",
   "version": "1.0.0",
+  "type": "module",
   "description": "An ADHD Executive Function tool",
   "main": "index.js",
   "scripts": {
