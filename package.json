@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/lmdrew96/Controlled_Chaos#readme",
   "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vercel/node": "^5.5.15",
     "typescript": "^5.9.3"
   }
 }
