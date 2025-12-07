@@ -233,11 +233,8 @@ function initVoiceRecognition(): void {
 
   recognition.onend = () => {
     UI.setVoiceRecording(false);
-    // Auto-send if we have content
-    const text = UI.elements.chatInput.value.trim();
-    if (text) {
-      sendMessage(text);
-    }
+    // Focus the input so user can review/edit before sending
+    UI.elements.chatInput.focus();
   };
 
   recognition.onerror = (event: any) => {
