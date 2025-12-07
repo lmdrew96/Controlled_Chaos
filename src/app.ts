@@ -50,13 +50,27 @@ function addTask(taskData: {
 }
 
 /**
- * Toggle task completion
+ * Toggle task completion with animation
  */
 function toggleTask(id: string): void {
   const task = state.tasks.find(t => t.id === id);
   if (task) {
-    task.completed = !task.completed;
-    saveAndRender();
+    const taskElement = document.querySelector(`.task-item[data-id="${id}"]`);
+
+    // If completing (not uncompleting), add animation
+    if (!task.completed && taskElement) {
+      taskElement.classList.add('completing');
+
+      // Wait for animation before updating state
+      setTimeout(() => {
+        task.completed = true;
+        saveAndRender();
+      }, 500);
+    } else {
+      // Uncompleting - no animation needed
+      task.completed = !task.completed;
+      saveAndRender();
+    }
   }
 }
 
@@ -325,6 +339,62 @@ function initEventListeners(): void {
   // Modal buttons
   UI.elements.confirmTasks.addEventListener('click', confirmProposedTasks);
   UI.elements.cancelModal.addEventListener('click', cancelProposedTasks);
+
+  // Global keyboard shortcuts
+  document.addEventListener('keydown', handleGlobalKeyboard);
+}
+
+/**
+ * Handle global keyboard shortcuts
+ */
+function handleGlobalKeyboard(e: KeyboardEvent): void {
+  // Escape - close modals and forms
+  if (e.key === 'Escape') {
+    // Close task modal if open
+    if (!UI.elements.taskModal.classList.contains('hidden')) {
+      cancelProposedTasks();
+      return;
+    }
+
+    // Close add task form if open
+    if (!UI.elements.addTaskForm.classList.contains('hidden')) {
+      UI.hideAddTaskForm();
+      return;
+    }
+  }
+
+  // Ctrl/Cmd + N - New task
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault();
+    UI.showAddTaskForm();
+    return;
+  }
+
+  // Ctrl/Cmd + Enter - What should I do now?
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    // Only trigger if not in a text input
+    const activeElement = document.activeElement;
+    const isInInput = activeElement instanceof HTMLInputElement ||
+                      activeElement instanceof HTMLTextAreaElement;
+
+    if (!isInInput) {
+      e.preventDefault();
+      handleWhatNow();
+    }
+    return;
+  }
+
+  // / - Focus chat input (if not already in an input)
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+    const activeElement = document.activeElement;
+    const isInInput = activeElement instanceof HTMLInputElement ||
+                      activeElement instanceof HTMLTextAreaElement;
+
+    if (!isInInput) {
+      e.preventDefault();
+      UI.elements.chatInput.focus();
+    }
+  }
 }
 
 /**
