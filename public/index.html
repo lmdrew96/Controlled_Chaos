@@ -13,6 +13,7 @@
     <header class="app-header">
       <h1>Controlled Chaos <span class="logo-emoji">🌀</span></h1>
       <div class="header-actions">
+        <button id="auth-btn" class="icon-btn" aria-label="Account">👤</button>
         <button id="theme-toggle" aria-label="Toggle theme">🌙</button>
       </div>
     </header>
@@ -92,7 +93,61 @@
         </div>
       </div>
     </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal hidden">
+      <div class="modal-content auth-modal-content">
+        <h3 id="auth-title">Sign In</h3>
+        <p id="auth-subtitle" class="auth-subtitle">Sync your tasks across devices</p>
+
+        <form id="auth-form" class="auth-form">
+          <input
+            type="email"
+            id="auth-email"
+            placeholder="Email"
+            required
+            autocomplete="email"
+          >
+          <input
+            type="password"
+            id="auth-password"
+            placeholder="Password"
+            required
+            autocomplete="current-password"
+            minlength="6"
+          >
+          <p id="auth-error" class="auth-error hidden"></p>
+          <button type="submit" id="auth-submit" class="btn-primary">Sign In</button>
+        </form>
+
+        <div class="auth-toggle">
+          <span id="auth-toggle-text">Don't have an account?</span>
+          <button type="button" id="auth-toggle-btn" class="btn-link">Sign Up</button>
+        </div>
+
+        <div class="auth-divider">
+          <span>or</span>
+        </div>
+
+        <button type="button" id="auth-skip" class="btn-secondary">
+          Continue without account
+        </button>
+
+        <!-- Logged in state -->
+        <div id="auth-logged-in" class="auth-logged-in hidden">
+          <p>Signed in as <strong id="auth-user-email"></strong></p>
+          <button type="button" id="auth-signout" class="btn-secondary">Sign Out</button>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- Supabase config (injected by Vercel) -->
+  <script>
+    // These will be replaced by Vercel edge function or set manually
+    window.SUPABASE_URL = '';
+    window.SUPABASE_ANON_KEY = '';
+  </script>
 
   <script type="module" src="dist/app.js"></script>
 </body>

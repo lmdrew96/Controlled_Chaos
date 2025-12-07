@@ -7,9 +7,14 @@ import { Task, AppState, ChatMessage, ProposedTask } from './types.js';
 import * as Storage from './storage.js';
 import * as UI from './ui.js';
 import * as API from './api.js';
+import * as Auth from './auth.js';
+import * as DB from './db.js';
 
 // Application state
 let state: AppState = Storage.load();
+
+// Auth mode: 'signin' or 'signup'
+let authMode: 'signin' | 'signup' = 'signin';
 
 // Pending proposed tasks from AI
 let pendingProposedTasks: ProposedTask[] = [];
@@ -18,22 +23,29 @@ let pendingProposedTasks: ProposedTask[] = [];
 let recognition: any = null;
 
 /**
- * Save state and re-render
+ * Save state to localStorage and optionally to Supabase
+ */
+async function saveState(): Promise<void> {
+  Storage.save(state);
+}
+
+/**
+ * Save and re-render
  */
 function saveAndRender(): void {
-  Storage.save(state);
+  saveState();
   UI.renderTasks(state.tasks);
 }
 
 /**
  * Add a new task
  */
-function addTask(taskData: {
+async function addTask(taskData: {
   title: string;
   dueDate?: string | null;
   dueTime?: string | null;
   category?: 'school' | 'work' | 'life';
-}): Task {
+}): Promise<Task> {
   const task: Task = {
     id: Storage.generateId(),
     title: taskData.title,
@@ -46,6 +58,10 @@ function addTask(taskData: {
 
   state.tasks.push(task);
   saveAndRender();
+
+  // Save to Supabase in background
+  DB.saveTask(task);
+
   return task;
 }
 
@@ -65,11 +81,13 @@ function toggleTask(id: string): void {
       setTimeout(() => {
         task.completed = true;
         saveAndRender();
+        DB.saveTask(task);
       }, 500);
     } else {
       // Uncompleting - no animation needed
       task.completed = !task.completed;
       saveAndRender();
+      DB.saveTask(task);
     }
   }
 }
@@ -80,6 +98,7 @@ function toggleTask(id: string): void {
 function deleteTask(id: string): void {
   state.tasks = state.tasks.filter(t => t.id !== id);
   saveAndRender();
+  DB.deleteTask(id);
 }
 
 /**
@@ -90,6 +109,7 @@ function toggleTheme(): void {
   state.settings.theme = newTheme;
   UI.applyTheme(newTheme);
   Storage.save(state);
+  DB.saveSettings(state.settings);
 }
 
 /**
@@ -106,6 +126,10 @@ function addChatMessage(role: 'user' | 'assistant', content: string): ChatMessag
   state.chatHistory.push(message);
   Storage.save(state);
   UI.renderChatMessages(state.chatHistory);
+
+  // Save to Supabase in background
+  DB.saveChatMessage(message);
+
   return message;
 }
 
@@ -299,6 +323,109 @@ function handleTaskClick(e: Event): void {
   }
 }
 
+// ============ AUTH HANDLERS ============
+
+/**
+ * Handle auth button click
+ */
+function handleAuthBtnClick(): void {
+  UI.showAuthModal();
+}
+
+/**
+ * Handle auth form submission
+ */
+async function handleAuthSubmit(e: Event): Promise<void> {
+  e.preventDefault();
+
+  const email = UI.elements.authEmail.value.trim();
+  const password = UI.elements.authPassword.value;
+
+  if (!email || !password) return;
+
+  UI.setAuthLoading(true);
+  UI.hideAuthError();
+
+  let result;
+  if (authMode === 'signin') {
+    result = await Auth.signIn(email, password);
+  } else {
+    result = await Auth.signUp(email, password);
+  }
+
+  UI.setAuthLoading(false);
+
+  if (result.error) {
+    UI.showAuthError(result.error);
+  } else if (authMode === 'signup') {
+    // Show success message for signup
+    UI.showAuthError('Check your email to confirm your account!');
+  }
+}
+
+/**
+ * Toggle between sign in and sign up modes
+ */
+function toggleAuthMode(): void {
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  if (authMode === 'signin') {
+    UI.setAuthModeSignIn();
+  } else {
+    UI.setAuthModeSignUp();
+  }
+  UI.hideAuthError();
+}
+
+/**
+ * Handle sign out
+ */
+async function handleSignOut(): Promise<void> {
+  await Auth.signOut();
+  UI.hideAuthModal();
+}
+
+/**
+ * Handle skip auth (continue without account)
+ */
+function handleAuthSkip(): void {
+  UI.hideAuthModal();
+}
+
+/**
+ * Handle auth state change
+ */
+async function handleAuthChange(user: any): Promise<void> {
+  if (user) {
+    // User logged in
+    UI.setLoggedInState(user.email || 'User');
+
+    // Migrate local data to cloud if needed
+    await DB.migrateLocalDataToCloud();
+
+    // Load user data from cloud
+    const cloudData = await DB.loadUserData();
+    state = cloudData;
+
+    // Re-render with cloud data
+    UI.applyTheme(state.settings.theme);
+    UI.renderTasks(state.tasks);
+    UI.renderChatMessages(state.chatHistory);
+
+    // Also save to localStorage as cache
+    Storage.save(state);
+  } else {
+    // User logged out
+    UI.setLoggedOutState();
+
+    // Load from localStorage
+    state = Storage.load();
+    UI.renderTasks(state.tasks);
+    UI.renderChatMessages(state.chatHistory);
+  }
+}
+
+// ============ EVENT LISTENERS ============
+
 /**
  * Initialize event listeners
  */
@@ -333,9 +460,23 @@ function initEventListeners(): void {
   // Voice input
   UI.elements.voiceBtn.addEventListener('click', toggleVoiceInput);
 
-  // Modal buttons
+  // Task modal buttons
   UI.elements.confirmTasks.addEventListener('click', confirmProposedTasks);
   UI.elements.cancelModal.addEventListener('click', cancelProposedTasks);
+
+  // Auth listeners
+  UI.elements.authBtn.addEventListener('click', handleAuthBtnClick);
+  UI.elements.authForm.addEventListener('submit', handleAuthSubmit);
+  UI.elements.authToggleBtn.addEventListener('click', toggleAuthMode);
+  UI.elements.authSignout.addEventListener('click', handleSignOut);
+  UI.elements.authSkip.addEventListener('click', handleAuthSkip);
+
+  // Close auth modal on background click
+  UI.elements.authModal.addEventListener('click', (e) => {
+    if (e.target === UI.elements.authModal) {
+      UI.hideAuthModal();
+    }
+  });
 
   // Global keyboard shortcuts
   document.addEventListener('keydown', handleGlobalKeyboard);
@@ -347,6 +488,12 @@ function initEventListeners(): void {
 function handleGlobalKeyboard(e: KeyboardEvent): void {
   // Escape - close modals and forms
   if (e.key === 'Escape') {
+    // Close auth modal if open
+    if (!UI.elements.authModal.classList.contains('hidden')) {
+      UI.hideAuthModal();
+      return;
+    }
+
     // Close task modal if open
     if (!UI.elements.taskModal.classList.contains('hidden')) {
       cancelProposedTasks();
@@ -397,11 +544,11 @@ function handleGlobalKeyboard(e: KeyboardEvent): void {
 /**
  * Initialize the application
  */
-function init(): void {
+async function init(): Promise<void> {
   // Apply saved theme
   UI.applyTheme(state.settings.theme);
 
-  // Render initial state
+  // Render initial state from localStorage
   UI.renderTasks(state.tasks);
   UI.renderChatMessages(state.chatHistory);
 
@@ -410,6 +557,9 @@ function init(): void {
 
   // Initialize voice recognition
   initVoiceRecognition();
+
+  // Initialize auth (will trigger handleAuthChange with current user or null)
+  await Auth.initAuth(handleAuthChange);
 
   console.log('Controlled Chaos initialized');
 }

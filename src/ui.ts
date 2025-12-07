@@ -24,6 +24,22 @@ interface Elements {
   confirmTasks: HTMLButtonElement;
   cancelModal: HTMLButtonElement;
   themeToggle: HTMLButtonElement;
+  // Auth elements
+  authBtn: HTMLButtonElement;
+  authModal: HTMLDivElement;
+  authForm: HTMLFormElement;
+  authEmail: HTMLInputElement;
+  authPassword: HTMLInputElement;
+  authError: HTMLParagraphElement;
+  authSubmit: HTMLButtonElement;
+  authTitle: HTMLHeadingElement;
+  authSubtitle: HTMLParagraphElement;
+  authToggleText: HTMLSpanElement;
+  authToggleBtn: HTMLButtonElement;
+  authSkip: HTMLButtonElement;
+  authLoggedIn: HTMLDivElement;
+  authUserEmail: HTMLElement;
+  authSignout: HTMLButtonElement;
 }
 
 let _elements: Elements | null = null;
@@ -48,14 +64,31 @@ function getElements(): Elements {
       voiceBtn: document.getElementById('voice-btn') as HTMLButtonElement,
       whatNowBtn: document.getElementById('what-now-btn') as HTMLButtonElement,
 
-      // Modal
+      // Task Modal
       taskModal: document.getElementById('task-modal') as HTMLDivElement,
       proposedTasks: document.getElementById('proposed-tasks') as HTMLDivElement,
       confirmTasks: document.getElementById('confirm-tasks') as HTMLButtonElement,
       cancelModal: document.getElementById('cancel-modal') as HTMLButtonElement,
 
       // Header
-      themeToggle: document.getElementById('theme-toggle') as HTMLButtonElement
+      themeToggle: document.getElementById('theme-toggle') as HTMLButtonElement,
+
+      // Auth
+      authBtn: document.getElementById('auth-btn') as HTMLButtonElement,
+      authModal: document.getElementById('auth-modal') as HTMLDivElement,
+      authForm: document.getElementById('auth-form') as HTMLFormElement,
+      authEmail: document.getElementById('auth-email') as HTMLInputElement,
+      authPassword: document.getElementById('auth-password') as HTMLInputElement,
+      authError: document.getElementById('auth-error') as HTMLParagraphElement,
+      authSubmit: document.getElementById('auth-submit') as HTMLButtonElement,
+      authTitle: document.getElementById('auth-title') as HTMLHeadingElement,
+      authSubtitle: document.getElementById('auth-subtitle') as HTMLParagraphElement,
+      authToggleText: document.getElementById('auth-toggle-text') as HTMLSpanElement,
+      authToggleBtn: document.getElementById('auth-toggle-btn') as HTMLButtonElement,
+      authSkip: document.getElementById('auth-skip') as HTMLButtonElement,
+      authLoggedIn: document.getElementById('auth-logged-in') as HTMLDivElement,
+      authUserEmail: document.getElementById('auth-user-email') as HTMLElement,
+      authSignout: document.getElementById('auth-signout') as HTMLButtonElement
     };
   }
   return _elements;
@@ -384,4 +417,100 @@ export function setChatLoading(isLoading: boolean): void {
   elements.chatInput.disabled = isLoading;
   elements.sendBtn.disabled = isLoading;
   elements.whatNowBtn.disabled = isLoading;
+}
+
+/**
+ * Show auth modal
+ */
+export function showAuthModal(): void {
+  elements.authModal.classList.remove('hidden');
+}
+
+/**
+ * Hide auth modal
+ */
+export function hideAuthModal(): void {
+  elements.authModal.classList.add('hidden');
+  elements.authForm.reset();
+  elements.authError.classList.add('hidden');
+}
+
+/**
+ * Set auth modal to sign in mode
+ */
+export function setAuthModeSignIn(): void {
+  elements.authTitle.textContent = 'Sign In';
+  elements.authSubmit.textContent = 'Sign In';
+  elements.authToggleText.textContent = "Don't have an account?";
+  elements.authToggleBtn.textContent = 'Sign Up';
+  elements.authPassword.autocomplete = 'current-password';
+}
+
+/**
+ * Set auth modal to sign up mode
+ */
+export function setAuthModeSignUp(): void {
+  elements.authTitle.textContent = 'Sign Up';
+  elements.authSubmit.textContent = 'Sign Up';
+  elements.authToggleText.textContent = 'Already have an account?';
+  elements.authToggleBtn.textContent = 'Sign In';
+  elements.authPassword.autocomplete = 'new-password';
+}
+
+/**
+ * Show auth error message
+ */
+export function showAuthError(message: string): void {
+  elements.authError.textContent = message;
+  elements.authError.classList.remove('hidden');
+}
+
+/**
+ * Hide auth error message
+ */
+export function hideAuthError(): void {
+  elements.authError.classList.add('hidden');
+}
+
+/**
+ * Update UI for logged in state
+ */
+export function setLoggedInState(email: string): void {
+  elements.authBtn.classList.add('logged-in');
+  elements.authBtn.textContent = '✓';
+  elements.authUserEmail.textContent = email;
+
+  // Show logged in view, hide form
+  elements.authForm.classList.add('hidden');
+  elements.authLoggedIn.classList.remove('hidden');
+  document.querySelector('.auth-toggle')?.classList.add('hidden');
+  document.querySelector('.auth-divider')?.classList.add('hidden');
+  elements.authSkip.classList.add('hidden');
+  elements.authSubtitle.textContent = 'Your tasks sync across devices';
+}
+
+/**
+ * Update UI for logged out state
+ */
+export function setLoggedOutState(): void {
+  elements.authBtn.classList.remove('logged-in');
+  elements.authBtn.textContent = '👤';
+
+  // Show form, hide logged in view
+  elements.authForm.classList.remove('hidden');
+  elements.authLoggedIn.classList.add('hidden');
+  document.querySelector('.auth-toggle')?.classList.remove('hidden');
+  document.querySelector('.auth-divider')?.classList.remove('hidden');
+  elements.authSkip.classList.remove('hidden');
+  elements.authSubtitle.textContent = 'Sync your tasks across devices';
+}
+
+/**
+ * Set auth form loading state
+ */
+export function setAuthLoading(isLoading: boolean): void {
+  elements.authEmail.disabled = isLoading;
+  elements.authPassword.disabled = isLoading;
+  elements.authSubmit.disabled = isLoading;
+  elements.authSubmit.textContent = isLoading ? 'Loading...' : elements.authTitle.textContent?.replace('Sign', 'Sign') || 'Submit';
 }
