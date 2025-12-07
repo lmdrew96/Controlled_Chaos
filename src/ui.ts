@@ -90,8 +90,7 @@ export function groupTasksByDate(tasks: Task[]): TaskGroup[] {
       return;
     }
 
-    const dueDate = new Date(task.dueDate);
-    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    const dueDateOnly = parseLocalDate(task.dueDate);
 
     if (dueDateOnly.getTime() === today.getTime()) {
       groups.today.tasks.push(task);
@@ -129,10 +128,19 @@ function formatTime(time: string): string {
 }
 
 /**
+ * Parse date string as local date (not UTC)
+ * Input: "2025-12-10" -> Date object for Dec 10, 2025 in local timezone
+ */
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Format date for display (weekday name)
  */
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return days[date.getDay()];
 }
@@ -141,7 +149,7 @@ function formatDate(dateStr: string): string {
  * Check if date is today
  */
 function isToday(dateStr: string): boolean {
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   const today = new Date();
   return date.toDateString() === today.toDateString();
 }
