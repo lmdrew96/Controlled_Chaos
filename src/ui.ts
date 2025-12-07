@@ -4,34 +4,67 @@
 
 import { Task, ChatMessage, TaskGroup, ProposedTask } from './types.js';
 
-// Cached DOM elements
-export const elements = {
-  // Task panel
-  taskGroups: document.getElementById('task-groups') as HTMLDivElement,
-  addTaskToggle: document.getElementById('add-task-toggle') as HTMLButtonElement,
-  addTaskForm: document.getElementById('add-task-form') as HTMLFormElement,
-  taskTitle: document.getElementById('task-title') as HTMLInputElement,
-  taskDate: document.getElementById('task-date') as HTMLInputElement,
-  taskTime: document.getElementById('task-time') as HTMLInputElement,
-  taskCategory: document.getElementById('task-category') as HTMLSelectElement,
-  cancelTask: document.getElementById('cancel-task') as HTMLButtonElement,
+// Cached DOM elements - initialized lazily
+interface Elements {
+  taskGroups: HTMLDivElement;
+  addTaskToggle: HTMLButtonElement;
+  addTaskForm: HTMLFormElement;
+  taskTitle: HTMLInputElement;
+  taskDate: HTMLInputElement;
+  taskTime: HTMLInputElement;
+  taskCategory: HTMLSelectElement;
+  cancelTask: HTMLButtonElement;
+  chatMessages: HTMLDivElement;
+  chatInput: HTMLTextAreaElement;
+  sendBtn: HTMLButtonElement;
+  voiceBtn: HTMLButtonElement;
+  whatNowBtn: HTMLButtonElement;
+  taskModal: HTMLDivElement;
+  proposedTasks: HTMLDivElement;
+  confirmTasks: HTMLButtonElement;
+  cancelModal: HTMLButtonElement;
+  themeToggle: HTMLButtonElement;
+}
 
-  // Chat panel
-  chatMessages: document.getElementById('chat-messages') as HTMLDivElement,
-  chatInput: document.getElementById('chat-input') as HTMLTextAreaElement,
-  sendBtn: document.getElementById('send-btn') as HTMLButtonElement,
-  voiceBtn: document.getElementById('voice-btn') as HTMLButtonElement,
-  whatNowBtn: document.getElementById('what-now-btn') as HTMLButtonElement,
+let _elements: Elements | null = null;
 
-  // Modal
-  taskModal: document.getElementById('task-modal') as HTMLDivElement,
-  proposedTasks: document.getElementById('proposed-tasks') as HTMLDivElement,
-  confirmTasks: document.getElementById('confirm-tasks') as HTMLButtonElement,
-  cancelModal: document.getElementById('cancel-modal') as HTMLButtonElement,
+function getElements(): Elements {
+  if (!_elements) {
+    _elements = {
+      // Task panel
+      taskGroups: document.getElementById('task-groups') as HTMLDivElement,
+      addTaskToggle: document.getElementById('add-task-toggle') as HTMLButtonElement,
+      addTaskForm: document.getElementById('add-task-form') as HTMLFormElement,
+      taskTitle: document.getElementById('task-title') as HTMLInputElement,
+      taskDate: document.getElementById('task-date') as HTMLInputElement,
+      taskTime: document.getElementById('task-time') as HTMLInputElement,
+      taskCategory: document.getElementById('task-category') as HTMLSelectElement,
+      cancelTask: document.getElementById('cancel-task') as HTMLButtonElement,
 
-  // Header
-  themeToggle: document.getElementById('theme-toggle') as HTMLButtonElement
-};
+      // Chat panel
+      chatMessages: document.getElementById('chat-messages') as HTMLDivElement,
+      chatInput: document.getElementById('chat-input') as HTMLTextAreaElement,
+      sendBtn: document.getElementById('send-btn') as HTMLButtonElement,
+      voiceBtn: document.getElementById('voice-btn') as HTMLButtonElement,
+      whatNowBtn: document.getElementById('what-now-btn') as HTMLButtonElement,
+
+      // Modal
+      taskModal: document.getElementById('task-modal') as HTMLDivElement,
+      proposedTasks: document.getElementById('proposed-tasks') as HTMLDivElement,
+      confirmTasks: document.getElementById('confirm-tasks') as HTMLButtonElement,
+      cancelModal: document.getElementById('cancel-modal') as HTMLButtonElement,
+
+      // Header
+      themeToggle: document.getElementById('theme-toggle') as HTMLButtonElement
+    };
+  }
+  return _elements;
+}
+
+// Export elements as a getter
+export const elements: Elements = new Proxy({} as Elements, {
+  get: (_target, prop: keyof Elements) => getElements()[prop]
+});
 
 /**
  * Group tasks by date: TODAY, TOMORROW, THIS WEEK, LATER
