@@ -177,6 +177,7 @@ export default async function handler(
   // Get API key from environment
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.error('ANTHROPIC_API_KEY not found in environment');
     return response.status(500).json({ error: 'API key not configured' });
   }
 
@@ -224,8 +225,12 @@ export default async function handler(
 
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
-      console.error('Claude API error:', errorText);
-      return response.status(500).json({ error: 'AI request failed' });
+      console.error('Claude API error:', claudeResponse.status, errorText);
+      return response.status(500).json({
+        error: 'AI request failed',
+        details: errorText,
+        status: claudeResponse.status
+      });
     }
 
     const data = await claudeResponse.json();
@@ -235,6 +240,9 @@ export default async function handler(
 
   } catch (error) {
     console.error('Handler error:', error);
-    return response.status(500).json({ error: 'Internal server error' });
+    return response.status(500).json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 }

@@ -28,7 +28,8 @@ export async function sendChatMessage(
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || 'Request failed');
+      console.error('API response error:', error);
+      throw new Error(error.details || error.error || 'Request failed');
     }
 
     return await response.json();
